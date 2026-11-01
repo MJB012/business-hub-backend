@@ -1,0 +1,22 @@
+services:
+  business-hub-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: business-hub-backend
+    restart: unless-stopped
+    ports:
+      - "3004:${PORT:-3000}"
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:${PORT:-3000}/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
