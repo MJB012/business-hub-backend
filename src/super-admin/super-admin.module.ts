@@ -5,6 +5,7 @@ import { SuperAdminService } from './super-admin.service';
 import { Business, BusinessSchema } from '../businesses/schemas/business.schema';
 import { Product, ProductSchema } from '../products/schemas/product.schema';
 import { Sale, SaleSchema } from '../sales/schemas/sale.schema';
+import { Expense, ExpenseSchema } from '../expenses/schemas/expense.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
 
 @Module({
@@ -13,6 +14,7 @@ import { User, UserSchema } from '../users/schemas/user.schema';
       { name: Business.name, schema: BusinessSchema },
       { name: Product.name, schema: ProductSchema },
       { name: Sale.name, schema: SaleSchema },
+      { name: Expense.name, schema: ExpenseSchema },
       { name: User.name, schema: UserSchema },
     ]),
   ],

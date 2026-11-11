@@ -73,7 +73,7 @@ export class SalesService {
       }
     }
     const updated = await this.saleModel
-      .findOneAndUpdate({ _id: id, business_id: businessId }, { $set: updateData }, { new: true })
+      .findOneAndUpdate({ _id: id, business_id: businessId }, { $set: updateData }, { returnDocument: 'after' })
       .exec();
     if (!updated) {
       throw new NotFoundException('Sale not found');

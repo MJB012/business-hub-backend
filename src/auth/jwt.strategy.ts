@@ -30,9 +30,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // Check if the business is blocked for non-super-admins
     if (userObj.role !== UserRoleEnum.SUPER_ADMIN && userObj.role !== 'super_admin') {
       const business: any = userObj.business;
-      if (business && typeof business === 'object' && business.status === 'blocked') {
+      if (
+        business &&
+        typeof business === 'object' &&
+        (business.status === 'blocked' || business.status === 'suspended')
+      ) {
         throw new UnauthorizedException(
-          'Your business account has been blocked by the administration. Access is suspended.',
+          'Your business account has been suspended by the administration. Access is suspended.',
         );
       }
     }

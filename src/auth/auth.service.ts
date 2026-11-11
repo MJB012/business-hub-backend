@@ -1,4 +1,12 @@
-import { Injectable, UnauthorizedException, NotFoundException, BadRequestException, ForbiddenException, OnApplicationBootstrap } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  ConflictException,
+  OnApplicationBootstrap,
+} from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { BusinessesService } from '../businesses/businesses.service';
 import { EmailService } from '../email/email.service';
@@ -58,9 +66,13 @@ export class AuthService implements OnApplicationBootstrap {
       // If business is blocked, forbid login for business admin/owner
       if (user.role !== UserRoleEnum.SUPER_ADMIN && (user.role as string) !== 'super_admin') {
         const business: any = user.business;
-        if (business && typeof business === 'object' && business.status === 'blocked') {
+        if (
+          business &&
+          typeof business === 'object' &&
+          (business.status === 'blocked' || business.status === 'suspended')
+        ) {
           throw new UnauthorizedException(
-            'Your business account has been blocked by the administration. Access is suspended.',
+            'Your business account has been suspended by the administration. Access is suspended.',
           );
         }
       }
@@ -93,6 +105,12 @@ export class AuthService implements OnApplicationBootstrap {
 
     const existing = await this.usersService.findByEmail(createUserDto.email);
     if (existing) throw new UnauthorizedException('Email already in use');
+
+    // Strict validation: Ensure business name is unique across the whole database
+    const existingBusiness = await this.businessesService.findByName(createUserDto.business_name);
+    if (existingBusiness) {
+      throw new ConflictException('A business with this name already exists');
+    }
 
     // 1. Create Business document (proper MongoDB Object reference)
     const business = await this.businessesService.create({

@@ -33,7 +33,7 @@ export class Business {
   @Prop({ type: Number, default: 10 })
   low_stock_threshold?: number;
 
-  @Prop({ type: String, enum: ['active', 'blocked'], default: 'active' })
+  @Prop({ type: String, enum: ['active', 'blocked', 'suspended', 'pending', 'inactive'], default: 'active' })
   status: string;
 
   @Prop({ type: Date, default: null })
@@ -44,3 +44,8 @@ export class Business {
 }
 
 export const BusinessSchema = SchemaFactory.createForClass(Business);
+
+BusinessSchema.index(
+  { name: 1 },
+  { unique: true, collation: { locale: 'en', strength: 2 } },
+);

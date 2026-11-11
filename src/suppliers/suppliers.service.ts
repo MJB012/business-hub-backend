@@ -34,7 +34,7 @@ export class SuppliersService {
 
   async update(id: string, dto: UpdateSupplierDto, businessId: string | Types.ObjectId): Promise<SupplierDocument> {
     const updated = await this.supplierModel
-      .findOneAndUpdate({ _id: id, business_id: businessId }, { $set: dto }, { new: true })
+      .findOneAndUpdate({ _id: id, business_id: businessId }, { $set: dto }, { returnDocument: 'after' })
       .exec();
     if (!updated) {
       throw new NotFoundException('Supplier not found');

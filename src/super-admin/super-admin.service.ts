@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { Business, BusinessDocument } from '../businesses/schemas/business.schema';
 import { Product, ProductDocument } from '../products/schemas/product.schema';
 import { Sale, SaleDocument } from '../sales/schemas/sale.schema';
+import { Expense, ExpenseDocument } from '../expenses/schemas/expense.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { UpdateBusinessStatusDto } from './dto/update-business-status.dto';
 
@@ -16,6 +17,8 @@ export class SuperAdminService {
     private productModel: Model<ProductDocument>,
     @InjectModel(Sale.name)
     private saleModel: Model<SaleDocument>,
+    @InjectModel(Expense.name)
+    private expenseModel: Model<ExpenseDocument>,
     @InjectModel(User.name)
     private userModel: Model<UserDocument>,
   ) {}
@@ -23,26 +26,42 @@ export class SuperAdminService {
   async getPlatformStats() {
     const totalBusinesses = await this.businessModel.countDocuments();
     const activeBusinesses = await this.businessModel.countDocuments({
-      status: { $ne: 'blocked' },
+      status: { $in: ['active', null] },
+    });
+    const pendingBusinesses = await this.businessModel.countDocuments({
+      status: 'pending',
     });
     const blockedBusinesses = await this.businessModel.countDocuments({
-      status: 'blocked',
+      status: { $in: ['blocked', 'suspended'] },
+    });
+    const inactiveBusinesses = await this.businessModel.countDocuments({
+      status: 'inactive',
     });
     const totalProducts = await this.productModel.countDocuments();
     const totalOrders = await this.saleModel.countDocuments();
+    const totalUsers = await this.userModel.countDocuments();
 
     const revenueResult = await this.saleModel.aggregate([
       { $group: { _id: null, total: { $sum: '$total_amount' } } },
     ]);
     const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
 
+    const expenseResult = await this.expenseModel.aggregate([
+      { $group: { _id: null, total: { $sum: '$amount' } } },
+    ]);
+    const totalExpenses = expenseResult.length > 0 ? expenseResult[0].total : 0;
+
     return {
       total_businesses: totalBusinesses,
       active_businesses: activeBusinesses,
+      pending_businesses: pendingBusinesses,
       blocked_businesses: blockedBusinesses,
+      inactive_businesses: inactiveBusinesses,
       total_products: totalProducts,
       total_orders: totalOrders,
       total_revenue: totalRevenue,
+      total_expenses: totalExpenses,
+      total_users: totalUsers,
     };
   }
 
@@ -82,10 +101,31 @@ export class SuperAdminService {
       }
     });
 
+    // Aggregate expenses count & total expense by business_id
+    const expenseAgg = await this.expenseModel.aggregate([
+      {
+        $group: {
+          _id: '$business_id',
+          expense_count: { $sum: 1 },
+          total_expense: { $sum: '$amount' },
+        },
+      },
+    ]);
+    const expenseMap = new Map<string, { count: number; expense: number }>();
+    expenseAgg.forEach((e) => {
+      if (e._id) {
+        expenseMap.set(e._id.toString(), {
+          count: e.expense_count,
+          expense: e.total_expense || 0,
+        });
+      }
+    });
+
     return businesses.map((b: any) => {
       const bId = b._id.toString();
       const pCount = productMap.get(bId) || 0;
       const sData = salesMap.get(bId) || { count: 0, revenue: 0 };
+      const eData = expenseMap.get(bId) || { count: 0, expense: 0 };
       const bObj = b.toObject ? b.toObject() : { ...b };
 
       return {
@@ -94,6 +134,9 @@ export class SuperAdminService {
         products_count: pCount,
         sales_count: sData.count,
         total_revenue: sData.revenue,
+        expenses_count: eData.count,
+        total_expenses: eData.expense,
+        net_profit: sData.revenue - eData.expense,
       };
     });
   }
@@ -126,12 +169,20 @@ export class SuperAdminService {
       .sort({ createdAt: -1 })
       .exec();
 
+    // Fetch expenses belonging to this business
+    const expenses = await this.expenseModel
+      .find({ business_id: businessId })
+      .sort({ date: -1, createdAt: -1 })
+      .exec();
+
     const totalRevenue = sales.reduce((sum, s) => sum + (s.total_amount || 0), 0);
+    const totalExpenses = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
     const totalInventoryStock = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
     const lowStockCount = products.filter(
       (p) => (p.quantity || 0) <= (p.low_stock_threshold ?? business.low_stock_threshold ?? 10),
     ).length;
     const avgOrderValue = sales.length > 0 ? totalRevenue / sales.length : 0;
+    const netProfit = totalRevenue - totalExpenses;
 
     const bObj = business.toObject ? business.toObject() : { ...business };
 
@@ -144,10 +195,14 @@ export class SuperAdminService {
         low_stock_count: lowStockCount,
         sales_count: sales.length,
         total_revenue: totalRevenue,
+        total_expenses: totalExpenses,
+        net_profit: netProfit,
+        expenses_count: expenses.length,
         avg_order_value: avgOrderValue,
       },
       products,
       sales,
+      expenses,
     };
   }
 
@@ -162,10 +217,36 @@ export class SuperAdminService {
     }
 
     business.status = dto.status;
-    business.blocked_at = dto.status === 'blocked' ? new Date() : null;
-    business.block_reason = dto.reason || (dto.status === 'blocked' ? 'Suspended by Super Admin' : '');
+    business.blocked_at =
+      dto.status === 'blocked' || dto.status === 'suspended' ? new Date() : null;
+    business.block_reason =
+      dto.reason ||
+      (dto.status === 'blocked' || dto.status === 'suspended'
+        ? 'Suspended by Super Admin'
+        : '');
 
     await business.save();
     return business;
+  }
+
+  async getAllUsers() {
+    const users = await this.userModel
+      .find()
+      .populate('business', 'name type status')
+      .sort({ createdAt: -1 })
+      .exec();
+
+    return users.map((u: any) => {
+      const uObj = u.toObject ? u.toObject() : { ...u };
+      delete uObj.password;
+      const b = uObj.business;
+      const bStatus = b && typeof b === 'object' ? b.status : 'active';
+      const isSuspended = bStatus === 'blocked' || bStatus === 'suspended';
+      return {
+        ...uObj,
+        business_name: b && typeof b === 'object' && b.name ? b.name : 'N/A',
+        status: isSuspended ? 'Suspended' : 'Active',
+      };
+    });
   }
 }

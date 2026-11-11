@@ -34,7 +34,7 @@ export class CategoriesService {
 
   async update(id: string, dto: UpdateCategoryDto, businessId: string | Types.ObjectId): Promise<CategoryDocument> {
     const updated = await this.categoryModel
-      .findOneAndUpdate({ _id: id, business_id: businessId }, { $set: dto }, { new: true })
+      .findOneAndUpdate({ _id: id, business_id: businessId }, { $set: dto }, { returnDocument: 'after' })
       .exec();
     if (!updated) {
       throw new NotFoundException('Category not found');

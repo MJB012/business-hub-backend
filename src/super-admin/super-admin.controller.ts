@@ -13,6 +13,11 @@ export class SuperAdminController {
     return this.superAdminService.getPlatformStats();
   }
 
+  @Get('users')
+  getUsers() {
+    return this.superAdminService.getAllUsers();
+  }
+
   @Get('businesses')
   getBusinesses() {
     return this.superAdminService.getAllBusinessesWithStats();

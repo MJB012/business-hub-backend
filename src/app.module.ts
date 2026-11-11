@@ -10,6 +10,8 @@ import { CategoriesModule } from './categories/categories.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
 import { ProductsModule } from './products/products.module';
 import { SalesModule } from './sales/sales.module';
+import { ExpensesModule } from './expenses/expenses.module';
+import { ReportsModule } from './reports/reports.module';
 import { EmailModule } from './email/email.module';
 import { SuperAdminModule } from './super-admin/super-admin.module';
 import { APP_GUARD } from '@nestjs/core';
@@ -42,6 +44,8 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
     SuppliersModule,
     ProductsModule,
     SalesModule,
+    ExpensesModule,
+    ReportsModule,
     EmailModule,
     SuperAdminModule,
   ],

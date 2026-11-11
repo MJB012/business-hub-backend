@@ -34,7 +34,7 @@ export class ProductsService {
 
   async update(id: string, dto: UpdateProductDto, businessId: string | Types.ObjectId): Promise<ProductDocument> {
     const updated = await this.productModel
-      .findOneAndUpdate({ _id: id, business_id: businessId }, { $set: dto }, { new: true })
+      .findOneAndUpdate({ _id: id, business_id: businessId }, { $set: dto }, { returnDocument: 'after' })
       .exec();
     if (!updated) {
       throw new NotFoundException('Product not found');

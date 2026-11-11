@@ -32,6 +32,6 @@ export class UsersService {
   }
 
   async update(id: string | Types.ObjectId, updateData: Partial<User>): Promise<UserDocument | null> {
-    return this.userModel.findByIdAndUpdate(id, { $set: updateData }, { new: true }).exec();
+    return this.userModel.findByIdAndUpdate(id, { $set: updateData }, { returnDocument: 'after' }).exec();
   }
 }
