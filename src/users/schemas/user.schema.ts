@@ -27,6 +27,9 @@ export class User {
   })
   role: UserRoleEnum;
 
+  @Prop({ type: [String], default: [] })
+  permissions: string[];
+
   @Prop({ type: Types.ObjectId, ref: 'Business', required: false, default: null })
   business?: Types.ObjectId | Business | null;
 

@@ -12,8 +12,11 @@ import {
 import { SuppliersService } from './suppliers.service';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { UpdateSupplierDto } from './dto/update-supplier.dto';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { APP_PERMISSIONS } from '../common/constants/permissions.constant';
 
 @Controller('suppliers')
+@RequirePermissions(APP_PERMISSIONS.SUPPLIERS_MANAGE)
 export class SuppliersController {
   constructor(private suppliersService: SuppliersService) {}
 

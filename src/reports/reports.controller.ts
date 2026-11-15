@@ -7,8 +7,11 @@ import {
 } from '@nestjs/common';
 import { ReportsService } from './reports.service';
 import { ReportQueryDto } from './dto/report-query.dto';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { APP_PERMISSIONS } from '../common/constants/permissions.constant';
 
 @Controller('reports')
+@RequirePermissions(APP_PERMISSIONS.REPORTS_VIEW)
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 

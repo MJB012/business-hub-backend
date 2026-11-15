@@ -23,6 +23,15 @@ export class UsersService {
     return this.userModel.findById(id).populate('business').exec();
   }
 
+  async findAllByBusiness(businessId: string | Types.ObjectId): Promise<UserDocument[]> {
+    const bId = typeof businessId === 'string' ? new Types.ObjectId(businessId) : businessId;
+    return this.userModel
+      .find({ business: bId })
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .exec();
+  }
+
   async findOne(query: any): Promise<UserDocument | null> {
     return this.userModel.findOne(query).exec();
   }
@@ -33,5 +42,9 @@ export class UsersService {
 
   async update(id: string | Types.ObjectId, updateData: Partial<User>): Promise<UserDocument | null> {
     return this.userModel.findByIdAndUpdate(id, { $set: updateData }, { returnDocument: 'after' }).exec();
+  }
+
+  async remove(id: string | Types.ObjectId): Promise<any> {
+    return this.userModel.findByIdAndDelete(id).exec();
   }
 }

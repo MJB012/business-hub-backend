@@ -4,6 +4,7 @@ import { Strategy, ExtractJwt } from 'passport-jwt';
 import { UsersService } from '../users/users.service';
 import { ConfigService } from '@nestjs/config';
 import { UserRoleEnum } from '../enums/UserRoleEnum';
+import { DEFAULT_ROLE_PERMISSIONS } from '../common/constants/permissions.constant';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -25,6 +26,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     delete (userObj as any).password;
     if (!userObj.role) {
       userObj.role = payload.role || UserRoleEnum.ADMIN;
+    }
+    if (!userObj.permissions || !Array.isArray(userObj.permissions) || userObj.permissions.length === 0) {
+      userObj.permissions = DEFAULT_ROLE_PERMISSIONS[userObj.role] || [];
     }
 
     // Check if the business is blocked for non-super-admins

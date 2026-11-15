@@ -244,18 +244,36 @@ export class ReportsService {
     > = {};
 
     sales.forEach((s) => {
-      const pName = s.product_name || 'Unassigned Product';
-      if (!productMap[pName]) {
-        productMap[pName] = {
-          name: pName,
-          units_sold: 0,
-          revenue: 0,
-          orders_count: 0,
-        };
+      if (s.items && Array.isArray(s.items) && s.items.length > 0) {
+        s.items.forEach((item) => {
+          const pName = item.product_name || 'Unassigned Product';
+          if (!productMap[pName]) {
+            productMap[pName] = {
+              name: pName,
+              units_sold: 0,
+              revenue: 0,
+              orders_count: 0,
+            };
+          }
+          productMap[pName].units_sold += item.quantity || 0;
+          productMap[pName].revenue +=
+            item.total_amount ?? ((item.quantity || 1) * (item.unit_price || 0));
+          productMap[pName].orders_count += 1;
+        });
+      } else {
+        const pName = s.product_name || 'Unassigned Product';
+        if (!productMap[pName]) {
+          productMap[pName] = {
+            name: pName,
+            units_sold: 0,
+            revenue: 0,
+            orders_count: 0,
+          };
+        }
+        productMap[pName].units_sold += s.quantity || 0;
+        productMap[pName].revenue += s.total_amount || 0;
+        productMap[pName].orders_count += 1;
       }
-      productMap[pName].units_sold += s.quantity || 0;
-      productMap[pName].revenue += s.total_amount || 0;
-      productMap[pName].orders_count += 1;
     });
 
     const topProducts = Object.values(productMap)

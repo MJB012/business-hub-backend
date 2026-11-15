@@ -12,6 +12,11 @@ import {
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import {
+  RequirePermissions,
+  RequireAnyPermissions,
+} from '../common/decorators/permissions.decorator';
+import { APP_PERMISSIONS } from '../common/constants/permissions.constant';
 
 @Controller('categories')
 export class CategoriesController {
@@ -26,24 +31,36 @@ export class CategoriesController {
   }
 
   @Post()
+  @RequirePermissions(APP_PERMISSIONS.CATEGORIES_MANAGE)
   create(@Request() req: any, @Body() dto: CreateCategoryDto) {
     const businessId = this.getBusinessId(req);
     return this.categoriesService.create(dto, businessId);
   }
 
   @Get()
+  @RequireAnyPermissions(
+    APP_PERMISSIONS.CATEGORIES_MANAGE,
+    APP_PERMISSIONS.INVENTORY_VIEW,
+    APP_PERMISSIONS.SALES_VIEW,
+  )
   findAll(@Request() req: any) {
     const businessId = this.getBusinessId(req);
     return this.categoriesService.findAll(businessId);
   }
 
   @Get(':id')
+  @RequireAnyPermissions(
+    APP_PERMISSIONS.CATEGORIES_MANAGE,
+    APP_PERMISSIONS.INVENTORY_VIEW,
+    APP_PERMISSIONS.SALES_VIEW,
+  )
   findOne(@Request() req: any, @Param('id') id: string) {
     const businessId = this.getBusinessId(req);
     return this.categoriesService.findOne(id, businessId);
   }
 
   @Patch(':id')
+  @RequirePermissions(APP_PERMISSIONS.CATEGORIES_MANAGE)
   update(
     @Request() req: any,
     @Param('id') id: string,
@@ -54,6 +71,7 @@ export class CategoriesController {
   }
 
   @Delete(':id')
+  @RequirePermissions(APP_PERMISSIONS.CATEGORIES_MANAGE)
   remove(@Request() req: any, @Param('id') id: string) {
     const businessId = this.getBusinessId(req);
     return this.categoriesService.remove(id, businessId);

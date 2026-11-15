@@ -15,6 +15,7 @@ import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { Types } from 'mongoose';
 import { UserRoleEnum } from '../enums/UserRoleEnum';
+import { DEFAULT_ROLE_PERMISSIONS } from '../common/constants/permissions.constant';
 
 @Injectable()
 export class AuthService implements OnApplicationBootstrap {
@@ -79,6 +80,9 @@ export class AuthService implements OnApplicationBootstrap {
 
       const userObj = user.toObject ? user.toObject() : { ...user };
       delete (userObj as any).password;
+      if (!userObj.permissions || !Array.isArray(userObj.permissions) || userObj.permissions.length === 0) {
+        userObj.permissions = DEFAULT_ROLE_PERMISSIONS[userObj.role] || [];
+      }
       return userObj;
     }
     return null;
@@ -86,10 +90,17 @@ export class AuthService implements OnApplicationBootstrap {
 
   async login(user: any) {
     const id = user._id ? user._id.toString() : user.id;
+    const permissions =
+      Array.isArray(user.permissions) && user.permissions.length > 0
+        ? user.permissions
+        : DEFAULT_ROLE_PERMISSIONS[user.role] || [];
+    user.permissions = permissions;
+
     const payload = {
       sub: id,
       email: user.email,
       role: user.role || UserRoleEnum.ADMIN,
+      permissions,
     };
     return {
       access_token: this.jwtService.sign(payload),
@@ -99,12 +110,24 @@ export class AuthService implements OnApplicationBootstrap {
 
   async signup(createUserDto: CreateUserDto) {
     // Strict security check: Prevent any super admin creation attempt through API/registration
-    if ((createUserDto as any).role === UserRoleEnum.SUPER_ADMIN || (createUserDto as any).role === 'super_admin') {
-      throw new ForbiddenException('Creating a Super Admin account through registration is strictly prohibited.');
+    const requestedRole = (createUserDto as any).role ? String((createUserDto as any).role).toLowerCase() : '';
+    if (
+      (createUserDto as any).role === UserRoleEnum.SUPER_ADMIN ||
+      requestedRole === 'super_admin' ||
+      requestedRole.includes('super')
+    ) {
+      throw new ForbiddenException('Creating a Super Admin account through registration or the API is strictly prohibited.');
     }
 
     const existing = await this.usersService.findByEmail(createUserDto.email);
-    if (existing) throw new UnauthorizedException('Email already in use');
+    if (existing) {
+      if (existing.role && existing.role !== UserRoleEnum.ADMIN && existing.role !== UserRoleEnum.SUPER_ADMIN) {
+        throw new ForbiddenException(
+          `This email (${createUserDto.email}) is already assigned to the role "${existing.role}" under an existing business and cannot create its own business.`,
+        );
+      }
+      throw new ConflictException('This email is already in use. One email can have only one role.');
+    }
 
     // Strict validation: Ensure business name is unique across the whole database
     const existingBusiness = await this.businessesService.findByName(createUserDto.business_name);

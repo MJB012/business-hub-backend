@@ -1,6 +1,21 @@
-import { IsOptional, IsString, IsNumber, Min } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  Min,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { CreateSaleItemDto } from './create-sale.dto';
 
 export class UpdateSaleDto {
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateSaleItemDto)
+  items?: CreateSaleItemDto[];
+
   @IsOptional()
   @IsString()
   product_id?: string;

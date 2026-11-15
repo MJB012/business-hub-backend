@@ -13,6 +13,8 @@ import {
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { APP_PERMISSIONS } from '../common/constants/permissions.constant';
 
 @Controller('expenses')
 export class ExpensesController {
@@ -27,6 +29,7 @@ export class ExpensesController {
   }
 
   @Post()
+  @RequirePermissions(APP_PERMISSIONS.EXPENSES_MANAGE)
   create(@Request() req: any, @Body() dto: CreateExpenseDto) {
     const businessId = this.getBusinessId(req);
     const userId = req.user?._id;
@@ -34,6 +37,7 @@ export class ExpensesController {
   }
 
   @Get()
+  @RequirePermissions(APP_PERMISSIONS.EXPENSES_VIEW)
   findAll(
     @Request() req: any,
     @Query('startDate') startDate?: string,
@@ -53,18 +57,21 @@ export class ExpensesController {
   }
 
   @Get('stats')
+  @RequirePermissions(APP_PERMISSIONS.EXPENSES_VIEW)
   getStats(@Request() req: any) {
     const businessId = this.getBusinessId(req);
     return this.expensesService.getStats(businessId);
   }
 
   @Get(':id')
+  @RequirePermissions(APP_PERMISSIONS.EXPENSES_VIEW)
   findOne(@Request() req: any, @Param('id') id: string) {
     const businessId = this.getBusinessId(req);
     return this.expensesService.findOne(id, businessId);
   }
 
   @Patch(':id')
+  @RequirePermissions(APP_PERMISSIONS.EXPENSES_MANAGE)
   update(
     @Request() req: any,
     @Param('id') id: string,
@@ -75,6 +82,7 @@ export class ExpensesController {
   }
 
   @Delete(':id')
+  @RequirePermissions(APP_PERMISSIONS.EXPENSES_DELETE)
   remove(@Request() req: any, @Param('id') id: string) {
     const businessId = this.getBusinessId(req);
     return this.expensesService.remove(id, businessId);

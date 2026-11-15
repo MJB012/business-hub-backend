@@ -5,18 +5,18 @@ import { Product } from '../../products/schemas/product.schema';
 
 export type SaleDocument = Sale & Document;
 
-@Schema({ timestamps: true })
-export class Sale {
+@Schema({ _id: false })
+export class SaleItem {
   @Prop({ type: Types.ObjectId, ref: 'Product', required: false, default: null })
   product_id?: Types.ObjectId | Product | null;
 
   @Prop({ required: true, trim: true })
   product_name: string;
 
-  @Prop({ required: true, type: Number, min: 1 })
+  @Prop({ required: true, type: Number, min: 1, default: 1 })
   quantity: number;
 
-  @Prop({ required: true, type: Number, min: 0 })
+  @Prop({ required: true, type: Number, min: 0, default: 0 })
   unit_price: number;
 
   @Prop({ type: Number, min: 0, default: 0 })
@@ -25,7 +25,36 @@ export class Sale {
   @Prop({ type: Number, min: 0, default: 0 })
   discount?: number;
 
-  @Prop({ required: true, type: Number, min: 0 })
+  @Prop({ type: Number, min: 0, default: 0 })
+  total_amount?: number;
+}
+
+export const SaleItemSchema = SchemaFactory.createForClass(SaleItem);
+
+@Schema({ timestamps: true })
+export class Sale {
+  @Prop({ type: [SaleItemSchema], default: [] })
+  items?: SaleItem[];
+
+  @Prop({ type: Types.ObjectId, ref: 'Product', required: false, default: null })
+  product_id?: Types.ObjectId | Product | null;
+
+  @Prop({ required: false, trim: true, default: '' })
+  product_name: string;
+
+  @Prop({ required: true, type: Number, min: 1, default: 1 })
+  quantity: number;
+
+  @Prop({ required: true, type: Number, min: 0, default: 0 })
+  unit_price: number;
+
+  @Prop({ type: Number, min: 0, default: 0 })
+  original_price?: number;
+
+  @Prop({ type: Number, min: 0, default: 0 })
+  discount?: number;
+
+  @Prop({ required: true, type: Number, min: 0, default: 0 })
   total_amount: number;
 
   @Prop({ trim: true, default: 'Cash' })
